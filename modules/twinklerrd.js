@@ -12,7 +12,7 @@
  */
 
 Twinkle.rrd = function twinklerrd() {
-	if(wgAction=='history')
+    if(wgAction=='history')
     {
         Twinkle.addPortletLink(Twinkle.rrd.callback,'提特版删','tw-rrd','申请页面特定版本删除');
     }
@@ -38,51 +38,59 @@ Twinkle.rrd.callback=function rrdcallback(){
     });
     
     var Window = new Morebits.simpleWindow( 400, 300 );
-	Window.setTitle( "批量申请特定版本删除删除" );
-	//Window.setScriptName( "Twinkle" );
-	//Window.addFooterLink( "Twinkle帮助", "WP:TW/DOC#delimages" );
+    Window.setTitle( "批量申请特定版本删除删除" );
+    //Window.setScriptName( "Twinkle" );
+    //Window.addFooterLink( "Twinkle帮助", "WP:TW/DOC#delimages" );
     
     var form = new Morebits.quickForm( Twinkle.rrd.callback.evaluate );
-	form.append( {
-		type: 'radio',
-		list: [
-			{
-				label: '选择特定版本',
-				name: 'SelectMode',
-				value: '1',
-				checked: true
-			},
-			{
-				label: '选择前后版本并查询相关版本',
-				name: 'SelectMode',
-				value: '2',
-				checked: false
-			}
-		]
-	} );
     form.append( {
-		type: 'checkbox',
-		list: [
-			{
-				label: '编辑内容',
-				name: 'ToDelete',
-				value: 'content',
-				checked: false
-			},
-			{
-				label: '编辑者',
-				name: 'ToDelete',
-				value: 'editor',
-				checked: false
-			},
+        type: 'radio',
+        list: [
             {
-				label: '编辑摘要',
-				name: 'ToDelete',
-				value: 'summary',
-				checked: false
-			}
-		]
-	} );
+                label: '选择特定版本',
+                name: 'SelectMode',
+                value: '1',
+                checked: true
+            },
+            {
+                label: '选择前后版本并查询相关版本',
+                name: 'SelectMode',
+                value: '2',
+                checked: false
+            }
+        ]
+    } );
+    
+    content_work_area = new Morebits.quickForm.element( {
+                type: 'field',
+                label: '选择处理部分',
+                name: 'content_work_area'
+            } );    
+    content_work_area.append( {
+        type: 'checkbox',
+        list: [
+            {
+                label: '编辑内容',
+                name: 'ToDelete',
+                value: 'content',
+                checked: false
+            },
+            {
+                label: '编辑者',
+                name: 'ToDelete',
+                value: 'editor',
+                checked: false
+            },
+            {
+                label: '编辑摘要',
+                name: 'ToDelete',
+                value: 'summary',
+                checked: false
+            }
+        ]
+    } );
+    form.append(content_work_area.render());
+    
     form.append( {
         type:'select',
         name:'Reason',
@@ -134,38 +142,44 @@ Twinkle.rrd.callback=function rrdcallback(){
     });
     form.append({ type: 'div', id: 'ReasonOther' });
     /*
-	form.append( {
-		type: 'input',
-		name: 'OtherReason',
-		label: '请输入其他理由'
-	} );
+    form.append( {
+        type: 'input',
+        name: 'OtherReason',
+        label: '请输入其他理由'
+    } );
     */
     
     form.append( { type:'submit' } );
     var result = form.render();
-	Window.setContent(result);
-	Window.display();   
+    Window.setContent(result);
+    Window.display();   
     
     var evt = document.createEvent( "Event" );
-	evt.initEvent( 'change', true, true );
-	result.category.dispatchEvent( evt );
+    evt.initEvent( 'change', true, true );
+    result.category.dispatchEvent( evt );
 }
 
 Twinkle.rrd.ReasonForOther=function rdReasonOther(e){
     //var value = e.target.value;
-	var form =e.target.form;
+    var form =e.target.form;
     var $divReasonOther=$(form).find("div#ReasonOther");
     var $reason=$(Morebits.quickForm.getElements(form,"Reason")[0]);
     var reason=$reason.find("option:selected").first().val();
+    var div = new Morebits.quickForm.element({ type: 'div', id: 'ReasonOther' });
     
     if(reason=='other')
     {
-        form.append( {
+        div.append( {
             type: 'input',
             name: 'OtherReason',
             label: '请输入其他理由'
         } );
+    }
+    else
+    {
+        
     };
+    $divReasonOther.replaceWith(div.render()); 
 };
 
 Twinkle.rrd.callbacks = {
@@ -188,16 +202,16 @@ Twinkle.rrd.callbacks = {
 
 Twinkle.rrd.callback.evaluate = function twrrdCallbackEvaluate(e) {
     var form = e.target;
-	var params = {};
-	
+    var params = {};
+    
     Morebits.simpleWindow.setButtonsEnabled( false );
-	Morebits.status.init( form );
+    Morebits.status.init( form );
 
-	Morebits.wiki.actionCompleted.notice = "提交完成，在几秒内刷新页面";
+    Morebits.wiki.actionCompleted.notice = "提交完成，在几秒内刷新页面";
     
     Morebits.wiki.addCheckpoint();
     var wikipedia_page = new Morebits.wiki.page('Wikipedia:修订版本删除请求', "正在提交");
-	wikipedia_page.setCallbackParameters(params);	
+    wikipedia_page.setCallbackParameters(params);   
     wikipedia_page.load(Twinkle.rrd.callbacks.main);
     Morebits.wiki.removeCheckpoint();
 };
