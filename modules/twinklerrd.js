@@ -14,7 +14,7 @@
 Twinkle.rrd = function twinklerrd() {
 	if(wgAction=='history')
     {
-        Twinkle.addPortletLink(Twinkle.rrd.callback,'特版删','tw-rrd','申请页面特定版本删除');
+        Twinkle.addPortletLink(Twinkle.rrd.callback,'提特版删','tw-rrd','申请页面特定版本删除');
     }
 };
 
@@ -34,7 +34,7 @@ Twinkle.rrd.callback=function rrdcallback(){
             
         var insert=li_rev.find("span.mw-history-histlinks");
         
-        li_rev.append(checkbox);        
+        insert.after(checkbox);        
     });
     
     var Window = new Morebits.simpleWindow( 400, 300 );
@@ -132,11 +132,14 @@ Twinkle.rrd.callback=function rrdcallback(){
             }
         ]
     });
+    form.append({ type: 'div', id: 'ReasonOther' });
+    /*
 	form.append( {
 		type: 'input',
 		name: 'OtherReason',
 		label: '请输入其他理由'
 	} );
+    */
     
     form.append( { type:'submit' } );
     var result = form.render();
@@ -150,9 +153,19 @@ Twinkle.rrd.callback=function rrdcallback(){
 
 Twinkle.rrd.ReasonForOther=function rdReasonOther(e){
     //var value = e.target.value;
-	var form = e.target.form;
+	var form =e.target.form;
+    var $divReasonOther=$(form).find("div#ReasonOther");
+    var $reason=$(Morebits.quickForm.getElements(form,"Reason")[0]);
+    var reason=$reason.find("option:selected").first().val();
     
-    form.getElements("");
+    if(reason=='other')
+    {
+        form.append( {
+            type: 'input',
+            name: 'OtherReason',
+            label: '请输入其他理由'
+        } );
+    };
 };
 
 Twinkle.rrd.callbacks = {
@@ -188,8 +201,5 @@ Twinkle.rrd.callback.evaluate = function twrrdCallbackEvaluate(e) {
     wikipedia_page.load(Twinkle.rrd.callbacks.main);
     Morebits.wiki.removeCheckpoint();
 };
-
-
-
 })(jQuery);
 //</nowiki>
