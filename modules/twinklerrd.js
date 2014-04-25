@@ -89,8 +89,7 @@ Twinkle.rrd.callback=function rrdcallback(){
             }
         ]
     } );
-    var rendered = content_work_area.render();
-    form.append(rendered);
+    form.append(content_work_area);
     
     form.append( {
         type:'select',
@@ -198,6 +197,7 @@ Twinkle.rrd.callbacks = {
         wikipedia_page.setEditSummary("添加[[" + Morebits.pageNameNorm + "]]的版本提出。" + Twinkle.getPref('summaryAd'));
         
         //wikipedia_page.load(Twinkle.xfd.callbacks.afd.todaysList);
+        wikipedia_page.append();
         rev_values.remove();
     }
 };
