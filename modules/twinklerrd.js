@@ -61,11 +61,11 @@ Twinkle.rrd.callback=function rrdcallback(){
         ]
     } );
     
-    content_work_area = new Morebits.quickForm.element( {
-                type: 'field',
-                label: '选择处理部分',
-                name: 'content_work_area'
-            } );    
+    content_work_area =new Morebits.quickForm.element( {
+                            type: 'field',
+                            label: '移除内容',
+                            name: 'content_work_area'
+                        } );
     content_work_area.append( {
         type: 'checkbox',
         list: [
@@ -89,7 +89,8 @@ Twinkle.rrd.callback=function rrdcallback(){
             }
         ]
     } );
-    form.append(content_work_area.render());
+    var rendered = content_work_area.render();
+    form.append(rendered);
     
     form.append( {
         type:'select',
@@ -197,6 +198,7 @@ Twinkle.rrd.callbacks = {
         wikipedia_page.setEditSummary("添加[[" + Morebits.pageNameNorm + "]]的版本提出。" + Twinkle.getPref('summaryAd'));
         
         //wikipedia_page.load(Twinkle.xfd.callbacks.afd.todaysList);
+        rev_values.remove();
     }
 };
 
