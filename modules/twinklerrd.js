@@ -156,7 +156,7 @@ Twinkle.rrd.callback=function rrdcallback(){
 
     var evt = document.createEvent( "Event" );
     evt.initEvent( 'change', true, true );
-    result.category.dispatchEvent( evt );
+    result.dispatchEvent( evt );
 }
 
 Twinkle.rrd.ReasonForOther=function rdReasonOther(e){
@@ -196,25 +196,46 @@ Twinkle.rrd.getSelectArray=function(){
     return rev_values;    
 };
 
+Twinkle.rrd.cleanSelectInput=function(){
+    $("input.tw-rrd-selectrid").remove();
+};
+
+
 Twinkle.rrd.callbacks = {
     main: function( pageobj ) {
+        var form  =  pageobj;
         var params = pageobj.getCallbackParameters();
         
-        var rev_values=Twinkle.rrd.getSelectArray();
+        var rev_values=params.rev_values;
 
         wikipedia_page = new Morebits.wiki.page("Wikipedia:修订版本删除请求", "添加项目");
         wikipedia_page.setFollowRedirect(true);
         wikipedia_page.setCallbackParameters(params);
-        var addtext="";
-
+        var addtext="{{Revdel\n"+
+                    "|status = \n"+
+                    "|article = {1}\n"+
+                    "{0}"+
+                    "|set={2}\n"+
+                    "|reason={3}\n"+
+                    "}}\n"+
+                    "--~~~~";
+        String.prototype.format=function(list){
+            var args = list;
+            return this.replace(/\{(\d+)\}/g,               
+                function(model,i){
+                    return args[i];
+                });
+        };
+        
+        
 
         wikipedia_page.setAppendText(addtext);
         wikipedia_page.setEditSummary("添加[[" + Morebits.pageNameNorm + "]]的版本提出。" + Twinkle.getPref('summaryAd'));
 
-        //wikipedia_page.load(Twinkle.xfd.callbacks.afd.todaysList);
-        wikipedia_page.append();
+        
+        //wikipedia_page.append();
 
-        rev_inputs.remove();
+        Twinkle.rrd.cleanSelectInput();
     }
 };
 
@@ -241,35 +262,46 @@ Twinkle.rrd.callback.evaluate = function twrrdCallbackEvaluate(e) {
                 alert("按照前后版本选择，请选择超过2个选项");
                 return;
             }
-            var max,min;
+            var max_rev,min_rev;
             if(rev_values.length==2)
             {
-                min=rev_values[0];
-                max=rev_values[1];
+                min_rev=rev_values[0];
+                max_rev=rev_values[1];
             }
             else
             {
-                min=rev_values[0];
-                max=rev_values[rev_values.length-1];
-                
-                var query={
-                    'action':'query',
-                    'prop':'revisions',
-                    'rvprop':'ids',
-                    'rvstartid':,
-                    'rvendid':,
-                    'titles': mw.config.get("wgPageName"),
-                    'rvlimit' : Twinkle.getPref('batchMax') // the max for sysops
-                };
-                var apiquery=new Morebits.wiki.api('抓取历史', query,function(self){
-                
-                
-                });
+                min_rev=rev_values[0];
+                max_rev=rev_values[rev_values.length-1];            
             }
-        }        
-    }
+            var query={
+                'action':'query',
+                'prop':'revisions',
+                'rvprop':'ids',
+                'rvstartid':max_rev,
+                'rvendid':min_rev,
+                'titles': mw.config.get("wgPageName"),
+                'rvlimit' : 500
+            };
+            var apiquery=new Morebits.wiki.api('抓取历史', query,function(self){
+                var xmlDoc = self.responseXML;
+                var snapshot = xmlDoc.evaluate('//api/query/pages/page/revisions/rev', xmlDoc, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null );
+                var list = [];
+                
+                for ( var i = 0; i < snapshot.snapshotLength; ++i ) {
+                    var object = snapshot.snapshotItem(i);
+                    var rev_value = xmlDoc.evaluate( '@revid', object, null, XPathResult.STRING_TYPE, null ).stringValue;
+                    list.push(rev_value);                        
+                }
+                
+                rev_values=list;
+            });
+            apiquery.post();
+            
+        }
+        params={'rev_values':rev_values};
+    }    
     
-    /*
+    
     Morebits.simpleWindow.setButtonsEnabled( false );
     Morebits.status.init( form );
 
@@ -280,7 +312,8 @@ Twinkle.rrd.callback.evaluate = function twrrdCallbackEvaluate(e) {
     wikipedia_page.setCallbackParameters(params);
     wikipedia_page.load(Twinkle.rrd.callbacks.main);
     Morebits.wiki.removeCheckpoint();
-    */
+    
+    
 };
 })(jQuery);
 //</nowiki>
