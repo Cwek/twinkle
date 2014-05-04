@@ -72,19 +72,19 @@ Twinkle.rrd.callback=function rrdcallback(){
             {
                 label: '编辑内容',
                 name: 'ToDelete',
-                value: 'content',
+                value: '编辑内容',
                 checked: false
             },
             {
                 label: '编辑者',
                 name: 'ToDelete',
-                value: 'editor',
+                value: '编辑者',
                 checked: false
             },
             {
                 label: '编辑摘要',
                 name: 'ToDelete',
-                value: 'summary',
+                value: '编辑摘要',
                 checked: false
             }
         ]
@@ -227,15 +227,19 @@ Twinkle.rrd.callbacks = {
                 });
         };
         
+        //var ToDelete=Morebits.quickForm.getElements(form,"ToDelete");
+        //var Reason=Morebits.quickForm.getElements(form,"Reason");
         
-
+        //if(form.getCheckboxOrRadio(Reason,"other"))
+        
+        
         wikipedia_page.setAppendText(addtext);
         wikipedia_page.setEditSummary("添加[[" + Morebits.pageNameNorm + "]]的版本提出。" + Twinkle.getPref('summaryAd'));
 
         
         //wikipedia_page.append();
 
-        Twinkle.rrd.cleanSelectInput();
+        
     }
 };
 
@@ -244,10 +248,7 @@ Twinkle.rrd.callback.evaluate = function twrrdCallbackEvaluate(e) {
     var params = {};
     
     var rev_values=Twinkle.rrd.getSelectArray();
-    //console.log(form);
     var selectmode=$(form).find("input[name=SelectMode]:checked").val();
-    //console.log(selectmode);
-    //console.log(rev_values);
     if(rev_values.length<=0)
     {
         alert("请至少选择一个项目");
@@ -312,8 +313,7 @@ Twinkle.rrd.callback.evaluate = function twrrdCallbackEvaluate(e) {
     wikipedia_page.setCallbackParameters(params);
     wikipedia_page.load(Twinkle.rrd.callbacks.main);
     Morebits.wiki.removeCheckpoint();
-    
-    
+    Twinkle.rrd.cleanSelectInput();    
 };
 })(jQuery);
 //</nowiki>
