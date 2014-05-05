@@ -237,7 +237,7 @@ Twinkle.rrd.callbacks = {
         todelete.each(function(ele,index){
             ToDelete_arr.push($(this).val());
         });        
-        var str_todelete=ToDelete_arr.join("，");
+        var todelete_str=ToDelete_arr.join("，");
         
         var rev_value_strarr=[];
         var count=0;
