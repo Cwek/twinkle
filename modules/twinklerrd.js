@@ -21,7 +21,7 @@ Twinkle.rrd = function twinklerrd() {
 Twinkle.rrd.callback=function rrdcallback(){
     Twinkle.rrd.initSelectInput();
 
-    var Window = new Morebits.simpleWindow( 400, 300 );
+    var Window = new Morebits.simpleWindow( 400, 400 );
     Window.setTitle( "批量申请特定版本删除删除" );
     //Window.setScriptName( "Twinkle" );
     //Window.addFooterLink( "Twinkle帮助", "WP:TW/DOC#delimages" );
@@ -125,13 +125,12 @@ Twinkle.rrd.callback=function rrdcallback(){
         ]
     });
     form.append({ type: 'div', id: 'ReasonOther' });
-    /*
     form.append( {
         type: 'input',
-        name: 'OtherReason',
-        label: '请输入其他理由'
+        name: 'Other',
+        label: '其他补充信息'
     } );
-    */
+    
 
     form.append( { type:'submit' } );
     var result = form.render();
@@ -213,6 +212,7 @@ Twinkle.rrd.callbacks = {
         var todelete=params.todelete;
         var reason_str=params.reason;
         var otherReason_str=params.otherReason;
+        var other_str=params.other;
         
         wikipedia_page = new Morebits.wiki.page("Wikipedia:修订版本删除请求", "添加项目");
         wikipedia_page.setFollowRedirect(true);
@@ -220,10 +220,11 @@ Twinkle.rrd.callbacks = {
         var addtext_model="{{Revdel\n"+
                     "|status = \n"+
                     "|article = {1}\n"+
-                    "{0}"+
+                    "{0}\n"+
                     "|set={2}\n"+
                     "|reason={3}\n"+
                     "}}\n"+
+                    "{4}"
                     "--~~~~";
         String.prototype.format=function(list){
             var args = list;
@@ -245,7 +246,13 @@ Twinkle.rrd.callbacks = {
             rev_value_strarr.push("|id{0}={1}".format([count++,value]));
         });
         
-        var addtext=addtext_model.format([rev_value_strarr.join("\n"),Morebits.pageNameNorm,todelete_str,(reason_str=='other'?otherReason_str:reason_str)]);
+        var addtext=addtext_model.format([
+            rev_value_strarr.join("\n"),
+            Morebits.pageNameNorm,
+            todelete_str,
+            (reason_str=='other'?otherReason_str:reason_str),
+            (other_str!=""?other_str+"\n":"")
+        ]);
         console.log(addtext);
         wikipedia_page.setAppendText(addtext);
         wikipedia_page.setEditSummary("添加[[" + Morebits.pageNameNorm + "]]的版本提出。" + Twinkle.getPref('summaryAd'));
@@ -264,7 +271,8 @@ Twinkle.rrd.callback.evaluate = function twrrdCallbackEvaluate(e) {
     var reason=$(form).find("select[name=Reason] option:selected").val();
     var otherReason="";
     if(reason=='other')
-        otherReason=$(form).find("input[name=OtherReason]").val();
+    {otherReason=$(form).find("input[name=OtherReason]").val();}
+    var other=$(form).find("input[name=Other]").val();
     
     if(todelete.length<=0)
     {
@@ -318,14 +326,14 @@ Twinkle.rrd.callback.evaluate = function twrrdCallbackEvaluate(e) {
                 
                 rev_values=list;
             });
-            apiquery.post();
-            
+            apiquery.post();            
         }
         params={
                 'rev_values':rev_values,                
                 'todelete':todelete,
                 'reason':reason,
-                'otherReason':otherReason
+                'otherReason':otherReason,
+                'other':other
                 };
     }        
     
@@ -333,6 +341,7 @@ Twinkle.rrd.callback.evaluate = function twrrdCallbackEvaluate(e) {
     Morebits.status.init( form );
 
     Morebits.wiki.actionCompleted.notice = "提交完成，在几秒内刷新页面";
+    Morebits.wiki.actionCompleted.redirect = 'Wikipedia:修订版本删除请求';
 
     Morebits.wiki.addCheckpoint();
     var wikipedia_page = new Morebits.wiki.page('Wikipedia:修订版本删除请求', "正在提交");
