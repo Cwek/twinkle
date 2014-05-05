@@ -252,7 +252,7 @@ Twinkle.rrd.callbacks = {
         ]);
         //console.log(addtext);
         wikipedia_page.setAppendText(addtext);
-        wikipedia_page.setEditSummary("特定版本删除：[[" + Morebits.pageNameNorm + "]]。" + Twinkle.getPref('summaryAd'));
+        wikipedia_page.setEditSummary("特定版本删除申请：[[" + Morebits.pageNameNorm + "]]。" + Twinkle.getPref('summaryAd'));
 
         wikipedia_page.append();
     }
