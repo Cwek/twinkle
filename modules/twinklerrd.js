@@ -21,12 +21,13 @@ Twinkle.rrd = function twinklerrd() {
 Twinkle.rrd.callback=function rrdcallback(){
     Twinkle.rrd.initSelectInput();
 
-    var Window = new Morebits.simpleWindow( 400, 400 );
+    var Window = new Morebits.simpleWindow( 500, 400 );
     Window.setTitle( "批量申请特定版本删除删除" );
-    //Window.setScriptName( "Twinkle" );
-    //Window.addFooterLink( "Twinkle帮助", "WP:TW/DOC#delimages" );
+    Window.setScriptName( "Twinkle" );
+    Window.addFooterLink( "关于申请页面特定版本删除", "WP:RRD" );
 
     var form = new Morebits.quickForm( Twinkle.rrd.callback.evaluate );
+
     form.append( {
         type: 'radio',
         list: [
@@ -124,13 +125,14 @@ Twinkle.rrd.callback=function rrdcallback(){
             }
         ]
     });
+
     form.append({ type: 'div', id: 'ReasonOther' });
+
     form.append( {
         type: 'input',
         name: 'Other',
         label: '其他补充信息'
     } );
-    
 
     form.append( { type:'submit' } );
     var result = form.render();
@@ -156,13 +158,9 @@ Twinkle.rrd.ReasonForOther=function rdReasonOther(e){
             type: 'input',
             name: 'OtherReason',
             label: '请输入其他理由'
-        } );
+        });
     }
-    else
-    {
 
-    }
-    
     $divReasonOther.replaceWith(div.render());
 };
 
@@ -176,8 +174,8 @@ Twinkle.rrd.getSelectArray=function(){
             rev_values[count++]=$(this).val();
     });
     rev_values.sort();
-    
-    return rev_values;    
+
+    return rev_values;
 };
 
 Twinkle.rrd.cleanSelectInput=function(){
@@ -191,7 +189,6 @@ Twinkle.rrd.initSelectInput=function(){
         var rev_value=li_rev.find("input[name='oldid']").val();
 
         var checkbox=$("<input>");
-
         checkbox
             .attr("type","checkbox")
             .attr("name","selectrid")
@@ -207,13 +204,13 @@ Twinkle.rrd.initSelectInput=function(){
 Twinkle.rrd.callbacks = {
     main: function( pageobj ) {
         var params = pageobj.getCallbackParameters();
-        
+
         var rev_values=params.rev_values;
         var todelete=params.todelete;
         var reason_str=params.reason;
         var otherReason_str=params.otherReason;
         var other_str=params.other;
-        
+
         wikipedia_page = new Morebits.wiki.page("Wikipedia:修订版本删除请求", "添加项目");
         wikipedia_page.setFollowRedirect(true);
         wikipedia_page.setCallbackParameters(params);
@@ -228,24 +225,24 @@ Twinkle.rrd.callbacks = {
                     "--~~~~";
         String.prototype.format=function(list){
             var args = list;
-            return this.replace(/\{(\d+)\}/g,               
+            return this.replace(/\{(\d+)\}/g,
                 function(model,i){
                     return args[i];
                 });
         };
-        
+
         var ToDelete_arr=[];
         todelete.each(function(ele,index){
             ToDelete_arr.push($(this).val());
-        });        
+        });
         var todelete_str=ToDelete_arr.join("，");
-        
+
         var rev_value_strarr=[];
         var count=0;
         rev_values.map(function(value, index, array){
             rev_value_strarr.push("|id{0}={1}".format([count++,value]));
         });
-        
+
         var addtext=addtext_model.format([
             rev_value_strarr.join("\n"),
             Morebits.pageNameNorm,
@@ -253,18 +250,18 @@ Twinkle.rrd.callbacks = {
             (reason_str=='other'?otherReason_str:reason_str),
             (other_str!=""?other_str+"\n":"")
         ]);
-        console.log(addtext);
+        //console.log(addtext);
         wikipedia_page.setAppendText(addtext);
         wikipedia_page.setEditSummary("添加[[" + Morebits.pageNameNorm + "]]的版本提出。" + Twinkle.getPref('summaryAd'));
 
-        //wikipedia_page.append();       
+        wikipedia_page.append();
     }
 };
 
 Twinkle.rrd.callback.evaluate = function twrrdCallbackEvaluate(e) {
     var form = e.target;
     var params = {};
-    
+
     var rev_values=Twinkle.rrd.getSelectArray();
     var selectmode=$(form).find("input[name=SelectMode]:checked").val();
     var todelete=$(form).find("input[name=ToDelete]:checked");
@@ -273,12 +270,12 @@ Twinkle.rrd.callback.evaluate = function twrrdCallbackEvaluate(e) {
     if(reason=='other')
     {otherReason=$(form).find("input[name=OtherReason]").val();}
     var other=$(form).find("input[name=Other]").val();
-    
+
     if(todelete.length<=0)
     {
         alert("请至少选择一个删除内容");
         return;
-    }    
+    }
     if(rev_values.length<=0)
     {
         alert("请至少选择一个历史记录");
@@ -302,7 +299,7 @@ Twinkle.rrd.callback.evaluate = function twrrdCallbackEvaluate(e) {
             else
             {
                 min_rev=rev_values[0];
-                max_rev=rev_values[rev_values.length-1];            
+                max_rev=rev_values[rev_values.length-1];
             }
             var query={
                 'action':'query',
@@ -317,26 +314,26 @@ Twinkle.rrd.callback.evaluate = function twrrdCallbackEvaluate(e) {
                 var xmlDoc = self.responseXML;
                 var snapshot = xmlDoc.evaluate('//api/query/pages/page/revisions/rev', xmlDoc, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null );
                 var list = [];
-                
+
                 for ( var i = 0; i < snapshot.snapshotLength; ++i ) {
                     var object = snapshot.snapshotItem(i);
                     var rev_value = xmlDoc.evaluate( '@revid', object, null, XPathResult.STRING_TYPE, null ).stringValue;
-                    list.push(rev_value);                        
+                    list.push(rev_value);
                 }
-                
+
                 rev_values=list;
             });
-            apiquery.post();            
+            apiquery.post();
         }
         params={
-                'rev_values':rev_values,                
+                'rev_values':rev_values,
                 'todelete':todelete,
                 'reason':reason,
                 'otherReason':otherReason,
                 'other':other
                 };
-    }        
-    
+    }
+
     Morebits.simpleWindow.setButtonsEnabled( false );
     Morebits.status.init( form );
 
@@ -348,7 +345,7 @@ Twinkle.rrd.callback.evaluate = function twrrdCallbackEvaluate(e) {
     wikipedia_page.setCallbackParameters(params);
     wikipedia_page.load(Twinkle.rrd.callbacks.main);
     Morebits.wiki.removeCheckpoint();
-    Twinkle.rrd.cleanSelectInput();    
+    Twinkle.rrd.cleanSelectInput();
 };
 })(jQuery);
 //</nowiki>
