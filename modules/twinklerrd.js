@@ -19,23 +19,7 @@ Twinkle.rrd = function twinklerrd() {
 };
 
 Twinkle.rrd.callback=function rrdcallback(){
-    var li_revs=$("ul#pagehistory li");
-    li_revs.each(function(){
-        var li_rev=$(this);
-        var rev_value=li_rev.find("input[name='oldid']").val();
-
-        var checkbox=$("<input>");
-
-        checkbox
-            .attr("type","checkbox")
-            .attr("name","selectrid")
-            .addClass("tw-rrd-selectrid")
-            .attr("value",rev_value);
-
-        var insert=li_rev.find("span.mw-history-histlinks");
-
-        insert.after(checkbox);
-    });
+    Twinkle.rrd.initSelectInput();
 
     var Window = new Morebits.simpleWindow( 400, 300 );
     Window.setTitle( "批量申请特定版本删除删除" );
@@ -53,7 +37,7 @@ Twinkle.rrd.callback=function rrdcallback(){
                 checked: true
             },
             {
-                label: '选择前后版本并查询相关版本',
+                label: '选择前后版本并查询相关版本（至少两个，两个以上会选取最大和最小的版本号）',
                 name: 'SelectMode',
                 value: '2',
                 checked: false
@@ -178,7 +162,8 @@ Twinkle.rrd.ReasonForOther=function rdReasonOther(e){
     else
     {
 
-    };
+    }
+    
     $divReasonOther.replaceWith(div.render());
 };
 
@@ -200,18 +185,39 @@ Twinkle.rrd.cleanSelectInput=function(){
     $("input.tw-rrd-selectrid").remove();
 };
 
+Twinkle.rrd.initSelectInput=function(){
+    var li_revs=$("ul#pagehistory li");
+    li_revs.each(function(){
+        var li_rev=$(this);
+        var rev_value=li_rev.find("input[name='oldid']").val();
+
+        var checkbox=$("<input>");
+
+        checkbox
+            .attr("type","checkbox")
+            .attr("name","selectrid")
+            .addClass("tw-rrd-selectrid")
+            .attr("value",rev_value);
+
+        var insert=li_rev.find("span.mw-history-histlinks");
+
+        insert.after(checkbox);
+    });
+};
 
 Twinkle.rrd.callbacks = {
     main: function( pageobj ) {
-        var form  =  pageobj;
+        //var form  =  pageobj;
+        //var $form = $(form);
         var params = pageobj.getCallbackParameters();
         
         var rev_values=params.rev_values;
-
+        var form=params.form
+        var $form=$(form);
         wikipedia_page = new Morebits.wiki.page("Wikipedia:修订版本删除请求", "添加项目");
         wikipedia_page.setFollowRedirect(true);
         wikipedia_page.setCallbackParameters(params);
-        var addtext="{{Revdel\n"+
+        var addtext_model="{{Revdel\n"+
                     "|status = \n"+
                     "|article = {1}\n"+
                     "{0}"+
@@ -227,16 +233,28 @@ Twinkle.rrd.callbacks = {
                 });
         };
         
-        //var ToDelete=Morebits.quickForm.getElements(form,"ToDelete");
-        //var Reason=Morebits.quickForm.getElements(form,"Reason");
+        var $ToDelete=$form.find("input[name=ToDelete]:checked");
+        var ToDelete_arr=[];
+        $.each(function(ele,index){
+            ToDelete_arr.push($(this).val());
+        });        
+        var str_ToDelete=ToDelete_arr.join("，");
+        var str_Reason=$form.find("input[name=ToDelete]:selected").val();
+        var str_ReasonOther=null;
+        if(str_Reason=='other')
+        {str_ReasonOther=$(form).find("input[name=OtherReason]:selected").val();}
         
-        //if(form.getCheckboxOrRadio(Reason,"other"))
+        var rev_value_strarr=[];
+        var count=0;
+        rev_values.map(function(value, index, array){
+            rev_value_strarr.push("|id{0}={1}".format([count++,value])+"\n");
+        });
         
-        
+        var addtext=addtext_model.format([rev_value_strarr,Morebits.pageNameNorm,str_ToDelete,(str_Reason=='other'?str_ReasonOther:str_Reason)])
+        console.log(addtext);
         wikipedia_page.setAppendText(addtext);
         wikipedia_page.setEditSummary("添加[[" + Morebits.pageNameNorm + "]]的版本提出。" + Twinkle.getPref('summaryAd'));
 
-        
         //wikipedia_page.append();
 
         
@@ -249,9 +267,15 @@ Twinkle.rrd.callback.evaluate = function twrrdCallbackEvaluate(e) {
     
     var rev_values=Twinkle.rrd.getSelectArray();
     var selectmode=$(form).find("input[name=SelectMode]:checked").val();
+    var todelete=$(form).find("input[name=ToDelete]:checked");
+    if(todelete.length<=0)
+    {
+        alert("请至少选择一个删除内容");
+        return;
+    }    
     if(rev_values.length<=0)
     {
-        alert("请至少选择一个项目");
+        alert("请至少选择一个历史记录");
         return;
     }
     else
@@ -280,7 +304,7 @@ Twinkle.rrd.callback.evaluate = function twrrdCallbackEvaluate(e) {
                 'rvprop':'ids',
                 'rvstartid':max_rev,
                 'rvendid':min_rev,
-                'titles': mw.config.get("wgPageName"),
+                'titles': Morebits.pageNameNorm,
                 'rvlimit' : 500
             };
             var apiquery=new Morebits.wiki.api('抓取历史', query,function(self){
@@ -299,7 +323,7 @@ Twinkle.rrd.callback.evaluate = function twrrdCallbackEvaluate(e) {
             apiquery.post();
             
         }
-        params={'rev_values':rev_values};
+        params={'rev_values':rev_values,'form':form};
     }    
     
     
