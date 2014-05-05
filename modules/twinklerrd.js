@@ -207,13 +207,13 @@ Twinkle.rrd.initSelectInput=function(){
 
 Twinkle.rrd.callbacks = {
     main: function( pageobj ) {
-        //var form  =  pageobj;
-        //var $form = $(form);
         var params = pageobj.getCallbackParameters();
         
         var rev_values=params.rev_values;
-        var form=params.form
-        var $form=$(form);
+        var todelete=params.todelete;
+        var reason_str=params.reason;
+        var otherReason_str=params.otherReason;
+        
         wikipedia_page = new Morebits.wiki.page("Wikipedia:修订版本删除请求", "添加项目");
         wikipedia_page.setFollowRedirect(true);
         wikipedia_page.setCallbackParameters(params);
@@ -233,31 +233,24 @@ Twinkle.rrd.callbacks = {
                 });
         };
         
-        var $ToDelete=$form.find("input[name=ToDelete]:checked");
         var ToDelete_arr=[];
-        $.each(function(ele,index){
+        todelete.each(function(ele,index){
             ToDelete_arr.push($(this).val());
         });        
-        var str_ToDelete=ToDelete_arr.join("，");
-        var str_Reason=$form.find("input[name=ToDelete]:selected").val();
-        var str_ReasonOther=null;
-        if(str_Reason=='other')
-        {str_ReasonOther=$(form).find("input[name=OtherReason]:selected").val();}
+        var str_todelete=ToDelete_arr.join("，");
         
         var rev_value_strarr=[];
         var count=0;
         rev_values.map(function(value, index, array){
-            rev_value_strarr.push("|id{0}={1}".format([count++,value])+"\n");
+            rev_value_strarr.push("|id{0}={1}".format([count++,value]));
         });
         
-        var addtext=addtext_model.format([rev_value_strarr,Morebits.pageNameNorm,str_ToDelete,(str_Reason=='other'?str_ReasonOther:str_Reason)])
+        var addtext=addtext_model.format([rev_value_strarr.join("\n"),Morebits.pageNameNorm,todelete_str,(reason_str=='other'?otherReason_str:reason_str)]);
         console.log(addtext);
         wikipedia_page.setAppendText(addtext);
         wikipedia_page.setEditSummary("添加[[" + Morebits.pageNameNorm + "]]的版本提出。" + Twinkle.getPref('summaryAd'));
 
-        //wikipedia_page.append();
-
-        
+        //wikipedia_page.append();       
     }
 };
 
@@ -268,6 +261,11 @@ Twinkle.rrd.callback.evaluate = function twrrdCallbackEvaluate(e) {
     var rev_values=Twinkle.rrd.getSelectArray();
     var selectmode=$(form).find("input[name=SelectMode]:checked").val();
     var todelete=$(form).find("input[name=ToDelete]:checked");
+    var reason=$(form).find("select[name=Reason] option:selected").val();
+    var otherReason="";
+    if(reason=='other')
+        otherReason=$(form).find("input[name=OtherReason]").val();
+    
     if(todelete.length<=0)
     {
         alert("请至少选择一个删除内容");
@@ -323,9 +321,13 @@ Twinkle.rrd.callback.evaluate = function twrrdCallbackEvaluate(e) {
             apiquery.post();
             
         }
-        params={'rev_values':rev_values,'form':form};
-    }    
-    
+        params={
+                'rev_values':rev_values,                
+                'todelete':todelete,
+                'reason':reason,
+                'otherReason':otherReason
+                };
+    }        
     
     Morebits.simpleWindow.setButtonsEnabled( false );
     Morebits.status.init( form );
