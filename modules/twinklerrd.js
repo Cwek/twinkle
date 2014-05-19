@@ -186,7 +186,10 @@ Twinkle.rrd.initSelectInput=function(){
     var li_revs=$("ul#pagehistory li");
     li_revs.each(function(){
         var li_rev=$(this);
-        var rev_value=li_rev.find("input[name='oldid']").val();
+        var rev_input=li_rev.find("input[name='oldid']");
+        if(rev_input.is("input[disable=disabled]"))
+            return;
+        var rev_value=rev_input.val();
 
         var checkbox=$("<input>");
         checkbox
