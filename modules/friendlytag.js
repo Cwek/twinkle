@@ -751,8 +751,10 @@ Twinkle.tag.callbacks = {
 	notabilityList: function(pageobj) {
 		var text = pageobj.getPageText();
 		var params = pageobj.getCallbackParameters();
-
-		pageobj.setAppendText("\n{{subst:Wikipedia:关注度/提报/item|title=" + Morebits.pageNameNorm + "}}");
+        
+        var nowSections=Twinkle.checkHasNowDayMonthSection(pageobj.getPageName());
+        
+		pageobj.setAppendText("\n"+nowSections+"\n{{subst:Wikipedia:关注度/提报/item|title=" + Morebits.pageNameNorm + "}}");
 		pageobj.setEditSummary("添加[[" + Morebits.pageNameNorm + "]]。" + Twinkle.getPref('summaryAd'));
 		pageobj.setCreateOption('recreate');
 		pageobj.append();

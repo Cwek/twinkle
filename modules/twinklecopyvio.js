@@ -123,32 +123,9 @@ Twinkle.copyvio.callbacks = {
 	copyvioList: function(pageobj) {
 		var text = pageobj.getPageText();
 		var params = pageobj.getCallbackParameters();
-        
-        var query={
-            'action':'parse',
-            'prop':'sections',
-            'page': pageobj.getPageName(),
-        };
-        var sectionNames;
-        var apiquery=new Morebits.wiki.api('抓取章节', query,function(self){
-            var xmlDoc = self.responseXML;
-            var snapshot = xmlDoc.evaluate('//api/parse/sections', xmlDoc, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null );
-            var list = [];
 
-            for ( var i = 0; i < snapshot.snapshotLength; ++i ) {
-                var object = snapshot.snapshotItem(i);
-                var value = xmlDoc.evaluate( '@line', object, null, XPathResult.STRING_TYPE, null ).stringValue;
-                list.push(rev_value);
-            }
+        var nowSections=Twinkle.checkHasNowDayMonthSection(pageobj.getPageName());
 
-            sectionNames=list;
-        });
-        apiquery.post();
-        var now=new Date();
-        var nowSections=(now.getUTCMonth+1)+'月'+now.getUTCDate())+'日';
-        if(sectionNames.indexOf(nowSection)>-1)
-            nowSections="";        
-        
 		pageobj.setAppendText("\n" + nowSections + "\n{{subst:CopyvioVFDRecord|" + mw.config.get('wgPageName') + "}}");
 		pageobj.setEditSummary("添加[[" + mw.config.get('wgPageName') + "]]。" + Twinkle.getPref('summaryAd'));
 		pageobj.setCreateOption('recreate');

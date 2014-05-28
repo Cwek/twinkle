@@ -303,6 +303,41 @@ Twinkle.addPortlet = function( navigation, id, text, type, nextnodeid )
 	return outerDiv;
 };
 
+/**
+* **************** Twinkle.checkHasNowDayMonthSection() ****************
+* To check the page with a given name which have the section of the current date like 'M月D日' or not
+* @pagename the page name which the page need to been checked.
+* @retrun if the page have the section,it will return a empty string,Or it return the section of the current date.
+*/
+Twinkle.checkHasNowDayMonthSection=function(pagename)
+{
+    var query={
+            'action':'parse',
+            'prop':'sections',
+            'page': pagename,
+    };
+    var sectionNames;
+    var apiquery=new Morebits.wiki.api('抓取章节', query,function(self){
+        var xmlDoc = self.responseXML;
+        var snapshot = xmlDoc.evaluate('//api/parse/sections', xmlDoc, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null );
+        var list = [];
+
+        for ( var i = 0; i < snapshot.snapshotLength; ++i ) {
+            var object = snapshot.snapshotItem(i);
+            var value = xmlDoc.evaluate( '@line', object, null, XPathResult.STRING_TYPE, null ).stringValue;
+            list.push(value);
+        }
+
+        sectionNames=list;
+    });
+    apiquery.post();
+    var now=new Date();
+    var nowSections=(now.getUTCMonth+1)+'月'+now.getUTCDate())+'日';
+    if(sectionNames.indexOf(nowSection)>-1)
+        return "";
+    else
+        return nowSections;
+};
 
 /**
  * **************** Twinkle.addPortletLink() ****************
