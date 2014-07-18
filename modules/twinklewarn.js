@@ -1145,11 +1145,11 @@ Twinkle.warn.callbacks = {
 			text += '|1=' + article;
 		}
 
-		if (reason && isCustom) {
+		if (reason && !isCustom) {
 			// we assume that custom warnings lack a {{{2}}} parameter
 			text += "|2=" + reason;
 		}
-		text += '}}';
+		text += '|subst=subst:}}';
 
 		return text;
 	},
@@ -1172,7 +1172,7 @@ Twinkle.warn.callbacks = {
 			text += '|reason=' + blockReason;
 		}
 
-		text += "|sig=true}}";
+		text += "|sig=true|subst=subst:}}";
 		return text;
 	},
 	preview: function(form) {
@@ -1234,7 +1234,16 @@ Twinkle.warn.callbacks = {
 			}
 		}
 
-		var headerRe = new RegExp( "^==+\\s*" + date.getUTCFullYear() + "年" + (date.getUTCMonth() + 1) + "月" + "\\s*==+", 'm' );
+		var dateHeaderRegex = new RegExp( "^==+\\s*" + date.getUTCFullYear() + "年" + (date.getUTCMonth() + 1) + "月" +
+			"\\s*==+", 'mg' );
+		var dateHeaderRegexLast, dateHeaderRegexResult;
+		while ((dateHeaderRegexLast = dateHeaderRegex.exec( text )) !== null) {
+			dateHeaderRegexResult = dateHeaderRegexLast;
+		}
+		// If dateHeaderRegexResult is null then lastHeaderIndex is never checked. If it is not null but
+		// \n== is not found, then the date header must be at the very start of the page. lastIndexOf
+		// returns -1 in this case, so lastHeaderIndex gets set to 0 as desired.
+		var lastHeaderIndex = text.lastIndexOf( "\n==" ) + 1;   
 
 		if( text.length > 0 ) {
 			text += "\n\n";
@@ -1244,14 +1253,16 @@ Twinkle.warn.callbacks = {
 			if( Twinkle.getPref('blankTalkpageOnIndefBlock') && ( messageData.indefinite || (/indef|\*|max/).exec( params.block_timer ) ) ) {
 				Morebits.status.info( '信息', '根据参数设置清空讨论页并创建新标题' );
 				text = "== " + date.getUTCFullYear() + "年" + (date.getUTCMonth() + 1) + "月 " + " ==\n";
-			} else if( !headerRe.exec( text ) ) {
+			} else if( !dateHeaderRegexResult || dateHeaderRegexResult.index !== lastHeaderIndex ) {
 				Morebits.status.info( '信息', '未找到当月标题，将创建新的' );
 				text += "== " + date.getUTCFullYear() + "年" + (date.getUTCMonth() + 1) + "月 " + " ==\n";
 			}
 
 			text += Twinkle.warn.callbacks.getBlockNoticeWikitext(params.sub_group, params.article, params.block_timer, params.reason, messageData.indefinite);
 		} else {
-			if( !headerRe.exec( text ) ) {
+			if( messageData.heading ) {
+				text += "== " + messageData.heading + " ==\n";
+			} else if( !dateHeaderRegexResult || dateHeaderRegexResult.index !== lastHeaderIndex ) {
 				Morebits.status.info( '信息', '未找到当月标题，将创建新的' );
 				text += "== " + date.getUTCFullYear() + "年" + (date.getUTCMonth() + 1) + "月 " + " ==\n";
 			}
