@@ -409,6 +409,7 @@ Twinkle.load = function () {
 	Twinkle.copyvio();
 	Twinkle.xfd();
 	Twinkle.image();
+    Twinkle.rrd();
 	// Maintenance
 	Twinkle.protect();
 	Twinkle.tag();
