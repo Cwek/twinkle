@@ -31,7 +31,7 @@ Twinkle.tag = function friendlytag() {
 };
 
 Twinkle.tag.callback = function friendlytagCallback( uid ) {
-	var Window = new Morebits.simpleWindow( 630, (Twinkle.tag.mode === "条目") ? 450 : 400 );
+	var Window = new Morebits.simpleWindow( 630, (Twinkle.tag.mode === "条目") ? 500 : 400 );
 	Window.setScriptName( "Twinkle" );
 	// anyone got a good policy/guideline/info page/instructional page link??
 	Window.addFooterLink( "Twinkle帮助", "WP:TW/DOC#tag" );
@@ -56,6 +56,25 @@ Twinkle.tag.callback = function friendlytagCallback( uid ) {
 		case '条目':
 			Window.setTitle( "条目维护标记" );
 
+			form.append({
+				type: 'select',
+				name: 'sortorder',
+				label: '察看列表：',
+				tooltip: '您可以在Twinkle参数设置（WP:TWPREFS）中更改此项。',
+				event: Twinkle.tag.updateSortOrder,
+				list: [
+					{ type: 'option', value: 'cat', label: '按类别', selected: Twinkle.getFriendlyPref('tagArticleSortOrder') === 'cat' },
+					{ type: 'option', value: 'alpha', label: '按字母', selected: Twinkle.getFriendlyPref('tagArticleSortOrder') === 'alpha' }
+				]
+			});
+
+			form.append({
+				type: 'div',
+				id: 'tagWorkArea',
+				className: 'morebits-scrollbox',
+				style: 'max-height: 28em'
+			});
+
 			form.append( {
 					type: 'checkbox',
 					list: [
@@ -70,37 +89,19 @@ Twinkle.tag.callback = function friendlytagCallback( uid ) {
 				}
 			);
 
-			form.append({
-				type: 'select',
-				name: 'sortorder',
-				label: '察看列表：',
-				tooltip: '您可以在Twinkle参数设置中更改此项。',
-				event: Twinkle.tag.updateSortOrder,
-				list: [
-					{ type: 'option', value: 'cat', label: '按类别', selected: Twinkle.getFriendlyPref('tagArticleSortOrder') === 'cat' },
-					{ type: 'option', value: 'alpha', label: '按字母', selected: Twinkle.getFriendlyPref('tagArticleSortOrder') === 'alpha' }
-				]
-			});
-
-			form.append( { type: 'div', id: 'tagWorkArea' } );
-
-			if( Twinkle.getFriendlyPref('customTagList').length ) {
-				form.append( { type:'header', label:'自定义模板' } );
-				form.append( { type: 'checkbox', name: 'articleTags', list: Twinkle.getFriendlyPref('customTagList') } );
-			}
 			break;
 
 		case '重定向':
 			Window.setTitle( "重定向标记" );
 
-			form.append({ type: 'header', label:'拼写、错误拼写、时态和大小写模板' });
-			form.append({ type: 'checkbox', name: 'redirectTags', list: Twinkle.tag.spellingList });
+			form.append({ type: 'header', label:'常用模板' });
+			form.append({ type: 'checkbox', name: 'redirectTags', list: Twinkle.tag.frequentList });
 
-			form.append({ type: 'header', label:'其他名称模板' });
-			form.append({ type: 'checkbox', name: 'redirectTags', list: Twinkle.tag.alternativeList });
+			form.append({ type: 'header', label:'偶用模板' });
+			form.append({ type: 'checkbox', name: 'redirectTags', list: Twinkle.tag.lessFrequentList });
 
-			form.append({ type: 'header', label:'杂项和管理用重定向模板' });
-			form.append({ type: 'checkbox', name: 'redirectTags', list: Twinkle.tag.administrativeList });
+			form.append({ type: 'header', label:'鲜用模板' });
+			form.append({ type: 'checkbox', name: 'redirectTags', list: Twinkle.tag.rareList });
 			break;
 
 		default:
@@ -126,12 +127,13 @@ Twinkle.tag.checkedTags = [];
 
 Twinkle.tag.updateSortOrder = function(e) {
 	var sortorder = e.target.value;
-	var $workarea = $(e.target.form).find("div#tagWorkArea");
 
 	Twinkle.tag.checkedTags = e.target.form.getChecked("articleTags");
 	if (!Twinkle.tag.checkedTags) {
 		Twinkle.tag.checkedTags = [];
 	}
+	
+	var container = new Morebits.quickForm.element({ type: "fragment" });
 
 	// function to generate a checkbox, with appropriate subgroup if needed
 	var makeCheckbox = function(tag, description) {
@@ -189,7 +191,9 @@ Twinkle.tag.updateSortOrder = function(e) {
 					list: [
 						{ label: "{{notability}}：通用的关注度指引", value: "none" },
 						{ label: "{{notability|Biographies}}：人物传记", value: "Biographies" },
-						{ label: "{{notability|Fiction}}：虚构事物", value: "Films" },
+						{ label: "{{notability|Book}}：书籍", value: "Book" },
+						{ label: "{{notability|Number}}：数字", value: "Number" },
+						{ label: "{{notability|Fiction}}：虚构事物", value: "Fiction" },
 						{ label: "{{notability|Neologisms}}：发明、研究", value: "Neologisms" },
 						{ label: "{{notability|Web}}：网站、网络内容", value: "Web"}
 					]
@@ -203,11 +207,6 @@ Twinkle.tag.updateSortOrder = function(e) {
 
 	// categorical sort order
 	if (sortorder === "cat") {
-		var div = new Morebits.quickForm.element({
-			type: "div",
-			id: "tagWorkArea"
-		});
-
 		// function to iterate through the tags and create a checkbox for each one
 		var doCategoryCheckboxes = function(subdiv, array) {
 			var checkboxes = [];
@@ -225,8 +224,8 @@ Twinkle.tag.updateSortOrder = function(e) {
 		var i = 0;
 		// go through each category and sub-category and append lists of checkboxes
 		$.each(Twinkle.tag.article.tagCategories, function(title, content) {
-			div.append({ type: "header", id: "tagHeader" + i, label: title });
-			var subdiv = div.append({ type: "div", id: "tagSubdiv" + i++ });
+			container.append({ type: "header", id: "tagHeader" + i, label: title });
+			var subdiv = container.append({ type: "div", id: "tagSubdiv" + i++ });
 			if ($.isArray(content)) {
 				doCategoryCheckboxes(subdiv, content);
 			} else {
@@ -236,12 +235,6 @@ Twinkle.tag.updateSortOrder = function(e) {
 				});
 			}
 		});
-
-		var rendered = div.render();
-		$workarea.replaceWith(rendered);
-		var $rendered = $(rendered);
-		$rendered.find("h5").css({ 'font-size': '110%', 'margin-top': '1em' });
-		$rendered.find("div").filter(":has(span.quickformDescription)").css({ 'margin-top': '0.4em' });
 	}
 	// alphabetical sort order
 	else {
@@ -249,13 +242,38 @@ Twinkle.tag.updateSortOrder = function(e) {
 		$.each(Twinkle.tag.article.tags, function(tag, description) {
 			checkboxes.push(makeCheckbox(tag, description));
 		});
-		var tags = new Morebits.quickForm.element({
+		container.append({
 			type: "checkbox",
 			name: "articleTags",
 			list: checkboxes
 		});
-		$workarea.empty().append(tags.render());
 	}
+
+	// append any custom tags
+	if (Twinkle.getFriendlyPref('customTagList').length) {
+		container.append({ type: 'header', label: '自定义模板' });
+		container.append({ type: 'checkbox', name: 'articleTags', list: Twinkle.getFriendlyPref('customTagList') });
+	}
+
+	var $workarea = $(e.target.form).find("div#tagWorkArea");
+	var rendered = container.render();
+	$workarea.empty().append(rendered);
+
+	// style adjustments
+	$workarea.find("h5").css({ 'font-size': '110%' });
+	$workarea.find("h5:not(:first-child)").css({ 'margin-top': '1em' });
+	$workarea.find("div").filter(":has(span.quickformDescription)").css({ 'margin-top': '0.4em' });
+
+	// add a link to each template's description page
+	$.each(Morebits.quickForm.getElements(e.target.form, "articleTags"), function(index, checkbox) {
+		var $checkbox = $(checkbox);
+		var link = Morebits.htmlNode("a", ">");
+		link.setAttribute("class", "tag-template-link");
+		link.setAttribute("href", mw.util.getUrl("Template:" + 
+			Morebits.string.toUpperCaseFirstChar($checkbox.val())));
+		link.setAttribute("target", "_blank");
+		$checkbox.parent().append(["\u00A0", link]);
+	});
 };
 
 
@@ -278,6 +296,7 @@ Twinkle.tag.article.tags = {
 	"cleanup": "可能需要进行清理，以符合维基百科的质量标准",
 	"cleanup-jargon": "包含过多行话或专业术语，可能需要简化或提出进一步解释",
 	"coi": "主要贡献者与本条目所宣扬的内容可能存在利益冲突",
+	"copypaste": "内容可能是从某个来源处拷贝后贴上",
 	"contradict": "内容自相矛盾",
 	"copyedit": "需要编修，以确保文法、用词、语气、格式、标点等使用恰当",
 	"dead end": "需要更多内部连接以构筑百科全书的链接网络",
@@ -306,6 +325,8 @@ Twinkle.tag.article.tags = {
 	"original research": "可能包含原创研究或未查证内容",
 	"orphan": "没有或只有很少链入页面",
 	"overlinked": "含有过多、重复、或不必要的内部链接",
+	"overly detailed": "包含太多过度细节内容",
+	"plot": "可能包含过于详细的剧情摘要",
 	"pov": "中立性有争议。内容、语调可能带有明显的个人观点或地方色彩",
 	"primarysources": "依赖第一手来源",
 	"prose": "使用了日期或时间列表式记述，需要改写为连贯的叙述性文字",
@@ -335,6 +356,7 @@ Twinkle.tag.article.tagCategories = {
 			"copyedit"
 		],
 		"可能多余的内容": [
+			"copypaste",
 			"external links",
 			"non-free"
 		],
@@ -343,8 +365,9 @@ Twinkle.tag.article.tagCategories = {
 			"lead section too long",
 			"verylong"
 		],
-		"小说相关清理": [
-			"in-universe"
+		"虚构作品相关清理": [
+			"in-universe",
+			"plot"
 		]
 	},
 	"常规条目问题": {
@@ -368,6 +391,7 @@ Twinkle.tag.article.tagCategories = {
 		],
 		"信息和细节": [
 			"expert",
+			"overly detailed",
 			"trivia"
 		],
 		"时间性": [
@@ -423,91 +447,135 @@ Twinkle.tag.article.tagCategories = {
 
 // Tags for REDIRECTS start here
 
-Twinkle.tag.spellingList = [
+Twinkle.tag.frequentList = [
 	{
-		label: "{{簡繁重定向}}: 引导简体至繁体，或繁体至简体",
-		value: '簡繁重定向'
+		label: '{{合并重定向}}：保持页面题名至相应主条目，令页面内容在合并后仍能保存其编辑历史',
+		value: '合并重定向'
 	},
 	{
-		label: "{{模板重定向}}: 指向模板",
+		label: '{{简繁重定向}}：引导简体至繁体，或繁体至简体',
+		value: '简繁重定向'
+	},
+	{
+		label: '{{模板重定向}}：指向模板的重定向页面',
 		value: '模板重定向'
 	},
 	{
-		label: "{{别名重定向}}: 标题的其他名称、笔名、绰号、同义字等",
+		label: '{{别名重定向}}：标题的其他名称、笔名、绰号、同义字等',
 		value: '别名重定向'
 	},
 	{
-		label: "{{縮寫重定向}}: 标题缩写",
-		value: '縮寫重定向'
+		label: '{{译名重定向}}：人物、作品等各项事物的其他翻译名称',
+		value: '译名重定向'
 	},
 	{
-		label: "{{拼寫重定向}}: 标题的其他不同拼写",
-		value: '拼寫重定向'
+		label: '{{缩写重定向}}：标题缩写',
+		value: '缩写重定向'
 	},
 	{
-		label: "{{錯字重定向}}: 标题的常见错误拼写或误植",
-		value: '錯字重定向'
+		label: '{{拼写重定向}}：标题的其他不同拼写',
+		value: '拼写重定向'
 	},
-];
-
-Twinkle.tag.alternativeList = [
 	{
-		label: "{{全名重定向}}: 标题的完整或更完整名称",
+		label: '{{错字重定向}}：纠正标题的常见错误拼写或误植',
+		value: '错字重定向'
+	},
+	{
+		label: '{{旧名重定向}}：将事物早前的名称引导至更改后的主题',
+		value: '旧名重定向'
+	},
+	{
+		label: '{{历史名称重定向}}：具有历史意义的别名、笔名、同义词',
+		value: '历史名称重定向'
+	},
+	{
+		label: '{{全名重定向}}：标题的完整或更完整名称',
 		value: '全名重定向'
 	},
 	{
-		label: "{{短名重定向}}: 完整标题名称或人物全名的部分、不完整的名称或简称",
+		label: '{{短名重定向}}：完整标题名称或人物全名的部分、不完整的名称或简称',
 		value: '短名重定向'
 	},
 	{
-		label: "{{姓氏重定向}}: 人物姓氏",
+		label: '{{姓氏重定向}}：人物姓氏',
 		value: '姓氏重定向'
 	},
 	{
-		label: "{{人名重定向}}: 人物人名",
-		value: '人名重定向'
+		label: '{{名字重定向}}：人物人名',
+		value: '名字重定向'
 	},
 	{
-		label: "{{非中文重定向}}: 非中文标题",
+		label: '{{本名重定向}}：人物本名',
+		value: '本名重定向'
+	},
+	{
+		label: '{{非中文重定向}}：非中文标题',
 		value: '非中文重定向'
 	},
 	{
-		label: "{{日文重定向}}: 日语名称",
+		label: '{{日文重定向}}：日语名称',
 		value: '日文重定向'
 	}
 ];
 
-Twinkle.tag.administrativeList = [
+Twinkle.tag.lessFrequentList = [
 	{
-		label: "{{角色重定向}}: 电视剧、电影、书籍等作品的角色",
+		label: '{{角色重定向}}：电视剧、电影、书籍等作品的角色',
 		value: '角色重定向'
 	},
 	{
-		label: "{{章節重定向}}: 导向至较高密度（散文般密集）组织的页面",
-		value: '章節重定向'
+		label: '{{章节重定向}}：导向至较高密度组织的页面',
+		value: '章节重定向'
 	},
 	{
-		label: "{{列表重定向}}: 导向至低密度的列表",
+		label: '{{列表重定向}}：导向至低密度的列表',
 		value: '列表重定向'
 	},
 	{
-		label: "{{可能性重定向}}: 导向至当前提供内容更为详尽的目标页面、或该页面的章节段落",
+		label: '{{可能性重定向}}：导向至当前提供内容更为详尽的目标页面',
 		value: '可能性重定向'
 	},
 	{
-		label: "{{關聯字重定向}}: 标题名称关联字",
-		value: '關聯字重定向'
+		label: '{{关联字重定向}}：标题名称关联字',
+		value: '关联字重定向'
 	},
 	{
-		label: "{{捷徑重定向}}: 维基百科捷径",
-		value: '捷徑重定向'
+		label: '{{条目请求重定向}}：需要独立条目的页面',
+		value: '条目请求重定向'
 	},
 	{
-		label: "{{重定向模板用重定向}}: 重定向模板用",
+		label: '{{快捷方式重定向}}：维基百科快捷方式',
+		value: '快捷方式重定向'
+	}
+];
+
+Twinkle.tag.rareList = [
+	{
+		label: '{{词组重定向}}：将词组/词组/成语指向切题的条目及恰当章节',
+		value: '词组重定向'
+	},
+	{
+		label: '{{消歧义页重定向}}：指向消歧义页',
+		value: '消歧义页重定向'
+	},
+	{
+		label: '{{域名重定向}}：网域名称',
+		value: '域名重定向'
+	},
+	{
+		label: '{{年代重定向}}：于年份条目导向至年代条目',
+		value: '年代重定向'
+	},
+	{
+		label: '{{用户框模板重定向}}：用户框模板',
+		value: '用户框模板重定向'
+	},
+	{
+		label: '{{重定向模板用重定向}}：导向至重定向模板',
 		value: '重定向模板用重定向'
 	},
 	{
-		label: "{{EXIF重定向}}: JPEG图像包含EXIF信息",
+		label: '{{EXIF重定向}}：JPEG图像包含EXIF信息',
 		value: 'EXIF重定向'
 	}
 ];

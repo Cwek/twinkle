@@ -66,6 +66,12 @@ Twinkle.delimages.callback = function twinkledeliCallback() {
 			'grvprop': [ 'user' ]
 		};
 	} else {
+		// prepare for a possible merge with batchdelete
+		alert('致管理员：\n\n' +
+			'我们正在计划翻新“批量文件删除”模块，并在考虑对于分类以外的页面，此功能是否仍旧值得维护。\n\n' +
+			'既然您正于分类以外的页面调用“批量文件删除”，我们希望您能够于[[WT:TW]]告知Twinkle团队。如果没有人告诉我们他还在使用，我们就可能会移除或修改这个功能。\n\n' +
+			'谢谢，\nTwinkle团队');
+		//form.append({ type:'div', style:'color:red;font-weight:bold;font-size:larger', label: 'This module is going away. Please use "D-batch" (batch deletion) instead.' });
 		query = {
 			'action': 'query',
 			'generator': 'images',

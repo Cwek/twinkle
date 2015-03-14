@@ -79,7 +79,7 @@ Twinkle.defaultConfig.twinkle = {
 	noLogOnSpeedyNomination: [ "o1" ],
 	enlargeG11Input: true,
 	 // Unlink
-	unlinkNamespaces: [ "0", "100" ],
+	unlinkNamespaces: [ "0", "10", "100", "118" ],
 	 // Warn
 	defaultWarningGroup: "1",
 	showSharedIPNotice: true,
@@ -226,6 +226,7 @@ Twinkle.addPortlet = function( navigation, id, text, type, nextnodeid )
 	}
 
 	//verify/normalize input
+	var skin = mw.config.get("skin");
 	type = ( skin === "vector" && type === "menu" && ( navigation === "left-navigation" || navigation === "right-navigation" )) ? "menu" : "";
 	var outerDivClass;
 	var innerDivClass;
@@ -235,7 +236,7 @@ Twinkle.addPortlet = function( navigation, id, text, type, nextnodeid )
 			if ( navigation !== "portal" && navigation !== "left-navigation" && navigation !== "right-navigation" ) {
 				navigation = "mw-panel";
 			}
-			outerDivClass = ( navigation === "mw-panel" ) ? "portal" : ( type === "menu" ? "vectorMenu extraMenu" : "vectorTabs extraMenu" );
+			outerDivClass = ( navigation === "mw-panel" ) ? "portal" : ( type === "menu" ? "vectorMenu" : "vectorTabs" );
 			innerDivClass = ( navigation === "mw-panel" ) ? "body" : ( type === "menu" ? "menu" : "" );
 			break;
 		case "modern":
@@ -256,11 +257,6 @@ Twinkle.addPortlet = function( navigation, id, text, type, nextnodeid )
 	var outerDiv = document.createElement( "div" );
 	outerDiv.className = outerDivClass + " emptyPortlet";
 	outerDiv.id = id;
-	if ( type === "menu" ) {
-		// Fix drop-down arrow image in Vector skin
-		outerDiv.style.backgroundImage = 'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAQCAMAAAAlM38UAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAA9QTFRFsbGxmpqa3d3deXl58/n79CzHcQAAAAV0Uk5T/////wD7tg5TAAAAMklEQVR42mJgwQoYBkqYiZEZAhiZUFRDxWGicEPA4nBRhNlAcYQokpVMDEwD6kuAAAMAyGMFQVv5ldcAAAAASUVORK5CYII=")';
-		outerDiv.style.backgroundPosition = "right 60%";
-	}
 	if ( nextnode && nextnode.parentNode === root ) {
 		root.insertBefore( outerDiv, nextnode );
 	} else {
@@ -284,21 +280,20 @@ Twinkle.addPortlet = function( navigation, id, text, type, nextnodeid )
 			}
 		});
 
-		span = document.createElement( "span" );
-		span.appendChild( document.createTextNode( text ) );
-		a.appendChild( span );
 		h5.appendChild( a );
 	} else {
 		h5.appendChild( document.createTextNode( text ) );
 	}
 	outerDiv.appendChild( h5 );
 
-	var innerDiv = document.createElement( "div" ); // Not strictly necessary with type vectorTabs, or other skins.
-	innerDiv.className = innerDivClass;
-	outerDiv.appendChild(innerDiv);
+	if ( type === "menu" ) {
+		var innerDiv = document.createElement( "div" );
+		innerDiv.className = innerDivClass;
+		outerDiv.appendChild(innerDiv);
+	}
 
 	var ul = document.createElement( "ul" );
-	innerDiv.appendChild( ul );
+	(innerDiv || outerDiv).appendChild( ul );
 
 	return outerDiv;
 };
@@ -320,6 +315,9 @@ Twinkle.addPortletLink = function( task, text, id, tooltip )
 			task();
 			ev.preventDefault();
 		});
+	}
+	if ( $.collapsibleTabs ) {
+		$.collapsibleTabs.handleResize();
 	}
 	return link;
 };
@@ -391,10 +389,13 @@ Twinkle.load = function () {
 	    // Also, Twinkle is incompatible with Internet Explorer versions 8 or lower, so don't load there either.
 	    isOldIE = ( $.client.profile().name === 'msie' );
 
-    // Prevent users that are not autoconfirmed from loading Twinkle as well.
+	// Prevent users that are not autoconfirmed from loading Twinkle as well.
 	if ( isSpecialPage || isOldIE || !Twinkle.userAuthorized ) {
 		return;
 	}
+
+	// Set custom Api-User-Agent header, for server-side logging purposes
+	Morebits.wiki.api.setApiUserAgent( 'Twinkle~zh/2.0 (' + mw.config.get( 'wgDBname' ) + ')' );
 
 	// Load the modules in the order that the tabs should appears
 	// User/user talk-related

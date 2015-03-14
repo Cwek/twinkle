@@ -726,6 +726,18 @@ Twinkle.warn.messages = {
 			label: "在侵权页面直接重写条目",
 			summary: "单层级通知：在侵权页面直接重写条目"
 		},
+		"uw-crystal": {
+			label: "加入臆测或未确认的讯息",
+			summary: "单层级通知：加入臆测或未确认的讯息"
+		},
+		"uw-csd": {
+			label: "快速删除标记不当",
+			summary: "单层级通知：快速删除标记不当"
+		},
+		"uw-dab": {
+			label: "消歧义页格式错误",
+			summary: "单层级通知：消歧义页格式错误"
+		},
 		"uw-date": {
 			label: "不必要地更换日期格式",
 			summary: "单层级通知：不必要地更换日期格式"
@@ -786,6 +798,10 @@ Twinkle.warn.messages = {
 			label: "没有在讨论页上签名",
 			summary: "单层级通知：没有在讨论页上签名"
 		},
+		"uw-translated": {
+			label: "翻译条目未标注原作者",
+			summary: "单层级通知：翻译条目未标注原作者"
+		},
 		"uw-uaa": {
 			label: "向更改用户名回报的用户名称并不违反方针",
 			summary: "单层级通知：向更改用户名回报的用户名称并不违反方针"
@@ -823,9 +839,17 @@ Twinkle.warn.messages = {
 			label: "连结到有版权的材料",
 			summary: "单层级警告：连结到有版权的材料"
 		},
+		"uw-fakesource": {
+			label: "虚构资料来源或引文",
+			summary: "单层级警告：虚构资料来源或引文"
+		},
 		"uw-hoax": {
 			label: "建立恶作剧",
 			summary: "单层级警告：建立恶作剧"
+		},
+		"uw-incompletecite": {
+			label: "列出的资料来源欠缺若干详情而不易查找",
+			summary: "单层级警告：列出的资料来源欠缺若干详情而不易查找"
 		},
 		"uw-legal": {
 			label: "诉诸法律威胁",
@@ -850,6 +874,10 @@ Twinkle.warn.messages = {
 		"uw-upv": {
 			label: "用户页破坏",
 			summary: "单层级警告：用户页破坏"
+		},
+		"uw-selfinventedname": {
+			label: "不适当的自创新名词、新译名",
+			summary: "单层级警告：不适当的自创新名词、新译名"
 		},
 		"uw-substub": {
 			label: "创建小小作品",
@@ -943,7 +971,19 @@ Twinkle.warn.callback.change_category = function twinklewarnCallbackChangeCatego
 	}
 
 	// worker function to create the combo box entries
-	var createEntries = function( contents, container ) {
+	var createEntries = function( contents, container, wrapInOptgroup ) {
+		// due to an apparent iOS bug, we have to add an option-group to prevent truncation of text
+		// (search WT:TW archives for "Problem selecting warnings on an iPhone")
+		if ( wrapInOptgroup && $.client.profile().platform === "iphone" ) {
+			var wrapperOptgroup = new Morebits.quickForm.element( {
+				type: 'optgroup',
+				label: '可用模板'
+			} );
+			wrapperOptgroup = wrapperOptgroup.render();
+			container.appendChild( wrapperOptgroup );
+			container = wrapperOptgroup;
+		}
+
 		$.each( contents, function( itemKey, itemProperties ) {
 			var key = (typeof itemKey === "string") ? itemKey : itemProperties.value;
 
@@ -965,9 +1005,9 @@ Twinkle.warn.callback.change_category = function twinklewarnCallbackChangeCatego
 
 	if( value === "singlenotice" || value === "singlewarn" || value === "block" ) {
 		// no categories, just create the options right away
-		createEntries( Twinkle.warn.messages[ value ], sub_group );
+		createEntries( Twinkle.warn.messages[ value ], sub_group, true );
 	} else if( value === "custom" ) {
-		createEntries( Twinkle.getPref("customWarningList"), sub_group );
+		createEntries( Twinkle.getPref("customWarningList"), sub_group, true );
 	} else {
 		// create the option-groups
 		$.each( Twinkle.warn.messages[ value ], function( groupLabel, groupContents ) {
@@ -978,7 +1018,7 @@ Twinkle.warn.callback.change_category = function twinklewarnCallbackChangeCatego
 			optgroup = optgroup.render();
 			sub_group.appendChild( optgroup );
 			// create the options
-			createEntries( groupContents, optgroup );
+			createEntries( groupContents, optgroup, false );
 		} );
 	}
 
@@ -1145,11 +1185,11 @@ Twinkle.warn.callbacks = {
 			text += '|1=' + article;
 		}
 
-		if (reason && isCustom) {
+		if (reason && !isCustom) {
 			// we assume that custom warnings lack a {{{2}}} parameter
 			text += "|2=" + reason;
 		}
-		text += '}}';
+		text += '|subst=subst:}}';
 
 		return text;
 	},
@@ -1172,7 +1212,7 @@ Twinkle.warn.callbacks = {
 			text += '|reason=' + blockReason;
 		}
 
-		text += "|sig=true}}";
+		text += "|sig=true|subst=subst:}}";
 		return text;
 	},
 	preview: function(form) {
@@ -1234,7 +1274,16 @@ Twinkle.warn.callbacks = {
 			}
 		}
 
-		var headerRe = new RegExp( "^==+\\s*" + date.getUTCFullYear() + "年" + (date.getUTCMonth() + 1) + "月" + "\\s*==+", 'm' );
+		var dateHeaderRegex = new RegExp( "^==+\\s*" + date.getUTCFullYear() + "年" + (date.getUTCMonth() + 1) + "月" +
+			"\\s*==+", 'mg' );
+		var dateHeaderRegexLast, dateHeaderRegexResult;
+		while ((dateHeaderRegexLast = dateHeaderRegex.exec( text )) !== null) {
+			dateHeaderRegexResult = dateHeaderRegexLast;
+		}
+		// If dateHeaderRegexResult is null then lastHeaderIndex is never checked. If it is not null but
+		// \n== is not found, then the date header must be at the very start of the page. lastIndexOf
+		// returns -1 in this case, so lastHeaderIndex gets set to 0 as desired.
+		var lastHeaderIndex = text.lastIndexOf( "\n==" ) + 1;   
 
 		if( text.length > 0 ) {
 			text += "\n\n";
@@ -1244,14 +1293,16 @@ Twinkle.warn.callbacks = {
 			if( Twinkle.getPref('blankTalkpageOnIndefBlock') && ( messageData.indefinite || (/indef|\*|max/).exec( params.block_timer ) ) ) {
 				Morebits.status.info( '信息', '根据参数设置清空讨论页并创建新标题' );
 				text = "== " + date.getUTCFullYear() + "年" + (date.getUTCMonth() + 1) + "月 " + " ==\n";
-			} else if( !headerRe.exec( text ) ) {
+			} else if( !dateHeaderRegexResult || dateHeaderRegexResult.index !== lastHeaderIndex ) {
 				Morebits.status.info( '信息', '未找到当月标题，将创建新的' );
 				text += "== " + date.getUTCFullYear() + "年" + (date.getUTCMonth() + 1) + "月 " + " ==\n";
 			}
 
 			text += Twinkle.warn.callbacks.getBlockNoticeWikitext(params.sub_group, params.article, params.block_timer, params.reason, messageData.indefinite);
 		} else {
-			if( !headerRe.exec( text ) ) {
+			if( messageData.heading ) {
+				text += "== " + messageData.heading + " ==\n";
+			} else if( !dateHeaderRegexResult || dateHeaderRegexResult.index !== lastHeaderIndex ) {
 				Morebits.status.info( '信息', '未找到当月标题，将创建新的' );
 				text += "== " + date.getUTCFullYear() + "年" + (date.getUTCMonth() + 1) + "月 " + " ==\n";
 			}
